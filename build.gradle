@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.2.5'
-    id 'io.spring.dependency-management' version '1.1.5'
+    id 'org.springframework.boot' version '3.5.6'
+    id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'com.the11job'
@@ -10,7 +10,7 @@ description = 'Backend service for 11JOB'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21) // Java 21 사용
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -24,45 +24,64 @@ repositories {
     mavenCentral()
 }
 
-dependencyManagement {
-    imports {
-        mavenBom "io.awspring.cloud:spring-cloud-aws-dependencies:3.1.1"
-    }
-}
-
 dependencies {
-    // --- 기본 의존성 ---
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-validation' // jakarta.validation
+
+    // 1. Querydsl Core 및 JPA 의존성 추가
+    implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+
+    // 2. Querydsl Annotation Processor (Q-Class 자동 생성기) 설정
+    // Annotation Processor가 JPA 엔티티를 찾을 수 있도록 설정
+    annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
+
+    // 3. JPA Annotation Processor 설정 (jakarta.persistence.* 사용)
+    // Querydsl이 JPA 엔티티 메타데이터를 올바르게 처리하도록 지원
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+
+    // 4. Lombok과 함께 사용할 경우 추가 설정 (필수)
+    // Lombok과 Querydsl이 충돌하지 않도록 처리
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+
     compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
-    // --- DB 관련 ---
-    implementation 'mysql:mysql-connector-java:8.0.33'
     runtimeOnly 'com.h2database:h2'
-
-    // --- JWT ---
-    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
-
-    // --- Email, Redis ---
-    implementation 'com.sun.mail:jakarta.mail:2.0.1'
-    implementation 'org.springframework.boot:spring-boot-starter-mail'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-
-    // --- 테스트 ---
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+    // WebClient 사용을 위해 WebFlux 추가 (MVC와 함께 사용 가능)
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // Spring Boot 3+에서 JAXB 사용을 위한 의존성 (Java 9 이상 환경에 필수)
+    implementation 'jakarta.xml.bind:jakarta.xml.bind-api'
+    runtimeOnly 'org.glassfish.jaxb:jaxb-runtime'
+
+    // AWS S3
+    implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// Querydsl 설정을 위한 빌드 스크립트
+def querydslDir = project.buildDir.toString() + "/generated"
+
+sourceSets {
+    main {
+        java {
+            srcDirs += [querydslDir]
+        }
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.generatedSourceOutputDirectory = file(querydslDir)
+}
+
+clean {
+    delete file(querydslDir)
 }
