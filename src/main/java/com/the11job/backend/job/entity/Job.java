@@ -1,14 +1,18 @@
 package com.the11job.backend.job.entity;
 
+import com.the11job.backend.company.entity.Company;
 import com.the11job.backend.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import java.time.LocalDate;
 
 @Entity
 // 외부 API 고유 ID(requestNo)에 인덱스를 걸어 조회 성능을 높이고, 중복 저장 방지
@@ -16,16 +20,19 @@ import java.time.LocalDate;
         @jakarta.persistence.Index(name = "idx_request_no", columnList = "request_no")
 })
 @Getter
-// @Setter 제거: 데이터 무결성을 위해 setter 대신 update() 메서드를 사용
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA 사용을 위한 기본 생성자
 public class Job extends BaseEntity {
 
+    // Company 엔터티와의 관계 설정 (ManyToOne)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = false) // FK 컬럼 이름
+    private Company company;
+
     // 1. 채용공고 관리번호 (API 응답: JO_REQST_NO) - UNIQUE 제약조건 추가
-    // 외부 API에서 공고를 식별하는 고유 ID로 사용
     @Column(name = "request_no", unique = true, nullable = false)
     private String requestNo;
 
-    // 회사명 (API 응답: CMPNY_NM)
+    // 회사명 (API 응답: CMPNY_NM) -> Company 엔터티에 위임하는 것이 이상적
     @Column(name = "company_name", nullable = false)
     private String companyName;
 
@@ -74,12 +81,12 @@ public class Job extends BaseEntity {
     // Constructor and Builder
     // ----------------------------------------------------
 
-    // @AllArgsConstructor 대신 Builder 패턴 사용을 위해 @Builder로 대체
-    @Builder
+    @Builder // 이 생성자에 Builder 부여
     public Job(String requestNo, String companyName, String title, String workAddress,
                String jobCodeName, String academicName, String careerName, String hopeWage,
                Integer weeklyWorkHours, LocalDate registrationDate, LocalDate expirationDate,
                String detailUrl) {
+        // this.company = null; // Company는 Mapper에서 처리하지 않으므로 초기화하지 않음
         this.requestNo = requestNo;
         this.companyName = companyName;
         this.title = title;
@@ -99,11 +106,12 @@ public class Job extends BaseEntity {
     // ----------------------------------------------------
 
     /**
-     * 외부 API로부터 받은 최신 데이터로 엔터티의 내용 갱신
-     * requestNo와 ID는 갱신하지 않음
+     * 외부 API로부터 받은 최신 데이터로 엔터티의 내용 갱신 requestNo와 ID는 갱신하지 않음
+     *
      * @param updatedJob 최신 정보가 담긴 Job 객체
      */
     public void update(Job updatedJob) {
+        // Company는 갱신하지 않음 (RequestNo 기반으로 이미 연결된 상태)
         this.companyName = updatedJob.getCompanyName();
         this.title = updatedJob.getTitle();
         this.workAddress = updatedJob.getWorkAddress();
@@ -118,4 +126,13 @@ public class Job extends BaseEntity {
         this.detailUrl = updatedJob.getDetailUrl();
         // BaseEntity의 updatedDate는 자동으로 갱신
     }
+
+
+    /**
+     * JobSaverService에서 Company를 연결하기 위한 Setter
+     */
+    public void setCompany(Company company) {
+        this.company = company;
+    }
+
 }

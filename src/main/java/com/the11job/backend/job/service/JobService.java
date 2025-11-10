@@ -1,6 +1,7 @@
 package com.the11job.backend.job.service;
 
 import com.the11job.backend.global.exception.ErrorCode;
+import com.the11job.backend.job.dto.JobFilterRequest;
 import com.the11job.backend.job.entity.Job;
 import com.the11job.backend.job.exception.JobException;
 import com.the11job.backend.job.repository.JobRepository;
@@ -20,6 +21,23 @@ import org.springframework.transaction.annotation.Transactional;
 public class JobService {
 
     private final JobRepository jobRepository;
+    private final JobMapper jobResponseMapper; // Job 엔티티를 응답 DTO로 변환하는 Mapper (생략)
+
+    /**
+     * 필터링 및 검색 조건을 적용하여 채용 공고 목록을 조회합니다.
+     */
+    public Page<Object> getFilteredJobs(JobFilterRequest request, Pageable pageable) {
+
+        // 1. 필터링 조건을 커스텀 Repository 메서드에 전달
+        Page<Object> jobPage = jobRepository.findJobsByFilter(request, pageable)
+                .map(job -> {
+                    // 2. 조회된 Job 엔티티를 응답 DTO로 변환 (JobResponse DTO는 별도 구현 필요)
+                    // return jobResponseMapper.toResponse(job);
+                    return job; // 임시로 Entity 반환
+                });
+
+        return jobPage;
+    }
 
     /**
      * 전체 채용 공고 목록을 페이징하여 조회합니다. (예시로 가장 최근 등록된 순으로 정렬)

@@ -3,15 +3,11 @@ package com.the11job.backend.job.service;
 import com.the11job.backend.api.seouljob.SeoulJobApiClient;
 import com.the11job.backend.api.seouljob.SeoulJobInfo;
 import com.the11job.backend.global.exception.ApiClientException;
+import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
-
-// JobRepository는 JobBatchService에서 직접 사용되지 않으므로 제거
-// @Transactional도 제거
 
 @Service
 @RequiredArgsConstructor
@@ -101,7 +97,6 @@ import java.util.Optional;
 //        }
 //    }
 //
-//    // ❌ processAndSaveData 메서드는 JobSaverService로 이동했습니다. ❌
 //}
 
 public class JobBatchService {
@@ -112,7 +107,7 @@ public class JobBatchService {
     // API 호출 관련 상수 (이제 단일 호출이므로 MAX_DAILY_CALLS는 무시됨)
     private static final int MAX_RECORDS_PER_CALL = 1000;
 
-    // fetchAllJobPostings는 단 한번의 API 호출만 실행합니다.
+    // fetchAllJobPostings는 단 한번의 API 호출만 실행
     public void fetchAllJobPostings() {
         log.info("=== [배치 시작] 서울시 채용 정보 단일 호출 시작 (1-1000건) ===");
 
@@ -145,7 +140,7 @@ public class JobBatchService {
             return;
         }
 
-        // 🌟 단일 호출 결과 저장/갱신 로직 실행 🌟
+        // 단일 호출 결과 저장/갱신 로직 실행
         int recordsInThisCall = jobSaverService.processAndSaveData(details);
 
         log.info("=== [배치 완료] 단일 호출 처리 레코드: {}건 (API 총 {}건) ===",
@@ -164,5 +159,4 @@ public class JobBatchService {
         }
     }
 
-    // processAndSaveData 메서드는 JobSaverService에 그대로 남아있습니다.
 }
