@@ -31,7 +31,7 @@ public class DataInitializer implements CommandLineRunner {
 
         log.info("--- [초기화] JobBatchService 호출 완료 ---");
 
-        // 🌟 H2 DB 커밋 및 정리 시간을 벌기 위한 임시 지연 🌟
+        // H2 DB 커밋 및 정리 시간을 벌기 위한 임시 지연
         try {
             Thread.sleep(3000); // 3초 대기
         } catch (InterruptedException ignored) {

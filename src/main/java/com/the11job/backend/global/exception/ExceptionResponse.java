@@ -26,12 +26,10 @@ public class ExceptionResponse {
         return new ExceptionResponse(errorCode.getCode(), finalMessage);
     }
 
-    // MethodArgumentNotValidException 처리 (기존 로직 유지)
+    // MethodArgumentNotValidException 처리
     public static ExceptionResponse from(MethodArgumentNotValidException e) {
         // 첫 번째 유효성 검사 실패 필드의 오류 메시지를 사용합니다.
         // 여러 개의 오류가 있을 경우 리스트로 응답을 구성할 수도 있지만, 간단하게 첫 오류만 사용합니다.
-
-        // **[개선] 에러 코드와 메시지를 더 구체적으로 반환**
 
         // 기본 에러 코드 (ex: G400)
         ErrorCode baseCode = ErrorCode.INVALID_INPUT_VALUE; // <--- ErrorCode enum에 추가 필요

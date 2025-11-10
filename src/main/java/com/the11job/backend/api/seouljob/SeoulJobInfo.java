@@ -67,7 +67,7 @@ public class SeoulJobInfo {
         private String jobCodeName;
 
         @XmlElement(name = "RCRIT_NMPR_CO", nillable = true)
-        private String recruitNumber; // String 타입 유지
+        private String recruitNumber;
 
         @XmlElement(name = "ACDMCR_CMMN_CODE_SE", nillable = true)
         private String academicCode;

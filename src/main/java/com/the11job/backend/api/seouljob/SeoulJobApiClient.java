@@ -70,10 +70,10 @@ public class SeoulJobApiClient {
                 // HTTP 상태 코드에 따른 명시적인 에러 처리
                 .onStatus(httpStatus -> httpStatus.is4xxClientError() || httpStatus.is5xxServerError(),
                         clientResponse -> {
-                            // 에러 응답 코드를 확인합니다.
+                            // 에러 응답 코드를 확인
                             String errorMessage = String.format("API 서버 응답 오류: HTTP %s", clientResponse.statusCode());
                             System.err.println(errorMessage);
-                            // APIClientException을 던져 상위 계층에서 잡도록 합니다.
+                            // APIClientException을 던져 상위 계층에서 잡도록 함
                             return Mono.error(
                                     new ApiClientException(ErrorCode.API_EXTERNAL_COMMUNICATION_ERROR, errorMessage,
                                             null));

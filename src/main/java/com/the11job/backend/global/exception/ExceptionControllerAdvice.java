@@ -31,7 +31,7 @@ public class ExceptionControllerAdvice {
     public ResponseEntity<ExceptionResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
         log.error("Validation error: {}", ex.getMessage(), ex);
 
-        // [개선] ErrorCode 기반의 ExceptionResponse.from(MethodArgumentNotValidException) 호출
+        // ErrorCode 기반의 ExceptionResponse.from(MethodArgumentNotValidException) 호출
         ExceptionResponse response = ExceptionResponse.from(ex);
         // HTTP 상태는 ErrorCode에 정의된 BAD_REQUEST를 따릅니다.
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);

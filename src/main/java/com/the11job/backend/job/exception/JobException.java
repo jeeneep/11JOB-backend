@@ -13,7 +13,7 @@ public class JobException extends BaseException {
         super(errorCode);
     }
 
-    // (선택적) 특정 상황에 맞는 메시지를 전달하고 싶을 때
+    // 특정 상황에 맞는 메시지를 전달하고 싶을 때
     public JobException(ErrorCode errorCode, String message) {
         super(errorCode, message);
     }
