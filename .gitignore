@@ -54,6 +54,8 @@ HELP.md
 
 # 로컬 설정 파일 및 시크릿 파일 (DB 비밀번호 등 포함)
 application.properties
+application-local.properties
+application-rds.properties
 application.yml
 application.yaml
 *.properties

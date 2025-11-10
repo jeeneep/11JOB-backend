@@ -28,10 +28,16 @@ public enum ErrorCode {
     API_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "A429", "외부 API 호출 한도를 초과했습니다."),
 
     // ---------------------- 3. Job 도메인 오류 (J-Codes) ----------------------
-    /**
-     * 채용 공고를 찾을 수 없음 (JobService.getJobDetail 등에서 사용)
-     */
-    NOT_FOUND_JOB(HttpStatus.NOT_FOUND, "J404", "요청하신 채용 공고 정보를 찾을 수 없습니다.");
+    NOT_FOUND_JOB(HttpStatus.NOT_FOUND, "J404", "요청하신 채용 공고 정보를 찾을 수 없습니다."),
+    // ---------------------- 4. Company 도메인 오류 (C-Codes) ----------------------
+    NOT_FOUND_COMPANY(HttpStatus.NOT_FOUND, "C404", "요청하신 기업 정보를 찾을 수 없습니다."),
+
+    // ---------------------- 5. Schedule 도메인 오류 (S-Codes) ----------------------
+    NOT_FOUND_SCHEDULE(HttpStatus.NOT_FOUND, "S404", "요청하신 일정 정보를 찾을 수 없습니다."),
+    SCHEDULE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "S403", "해당 일정에 접근 권한이 없습니다."),
+
+    // ---------------------- 6. User 도메인 오류 (U-Codes, 미래 확장) ----------------------
+    UNAUTHORIZED_USER(HttpStatus.UNAUTHORIZED, "U401", "인증 정보가 유효하지 않습니다.");
 
 
     private final HttpStatus httpStatus;
