@@ -1,71 +1,33 @@
-HELP.md
-.gradle
-build/
+### Gradle, Build, & Dependencies ###
+# 컴파일 및 빌드 결과물
+/build/
+/out/
+.gradle/
 !gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+!**/src/**/build/
+!**/src/**/out/
 
-### STS ###
+# IDE별 설정 파일 및 캐시 (IDE 섹션 통합)
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
-.sts4-cache
+.sts4-cache/
 bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
-
-### IntelliJ IDEA ###
-.idea
+!**/src/**/bin/
+.idea/
 *.iws
 *.iml
 *.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
-.vscode/
-
-### Logs ###
+### 로그 및 임시 파일 ###
 logs/
 *.log
 *.log.*
 hs_err_pid*
 replay_pid*
-
-### OS Files ###
-.DS_Store
-Thumbs.db
-
-### Environment & Security ###
-*.env
-.env.*
-application-*.yml
-application-*.yaml
-application-*.properties
-secret.yml
-secret.yaml
-secret.properties
-
-### Database & Credentials ###
-*.db
-*.sqlite
-*.sqlite3
-*.mv.db
-*.h2.db
-
-### Others (cache/temp) ###
-node_modules/
 *.swp
 *.swo
 *.tmp
@@ -73,3 +35,52 @@ node_modules/
 *.bak
 *.old
 *.orig
+
+### 운영체제 및 기타 ###
+.DS_Store
+Thumbs.db
+node_modules/
+HELP.md
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+.vscode/
+
+# 환경 변수 파일 전체 제외
+*.env
+.env.*
+
+# 로컬 설정 파일 및 시크릿 파일 (DB 비밀번호 등 포함)
+application.properties
+application-local.properties
+application-rds.properties
+application.yml
+application.yaml
+*.properties
+*.yml
+*.yaml
+secret.yml
+secret.yaml
+secret.properties
+
+# 프로파일별 설정 파일 (운영/로컬 등)
+# 운영 환경의 설정 파일이 실수로 포함되는 것을 방지
+application-dev.properties
+application-dev.yml
+application-prod.properties
+application-prod.yml
+
+### 💾 데이터베이스 파일 및 인증 정보 ###
+*.db
+*.sqlite
+*.sqlite3
+*.mv.db
+*.h2.db
+
+# 운영 DB에 연결되는 민감한 파일
+# 예를 들어, 운영 환경 접속용 키 파일 등
+*.key
+*.pem
+*.jks
