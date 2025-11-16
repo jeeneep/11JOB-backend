@@ -22,7 +22,4 @@ public class JobFilterRequest {
     private String searchKeyword; // 회사명, 직무명 등에 사용될 검색어
     private String searchType;    // 검색 대상 지정 (예: "COMPANY", "TITLE", "ALL")
 
-    // 페이징 처리 정보 (선택적)
-    // private int page = 0;
-    // private int size = 10;
 }

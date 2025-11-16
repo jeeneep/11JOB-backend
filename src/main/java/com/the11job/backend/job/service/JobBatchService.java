@@ -1,8 +1,8 @@
 package com.the11job.backend.job.service;
 
+import com.the11job.backend.api.exception.ApiClientException;
 import com.the11job.backend.api.seouljob.SeoulJobApiClient;
 import com.the11job.backend.api.seouljob.SeoulJobInfo;
-import com.the11job.backend.global.exception.ApiClientException;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;

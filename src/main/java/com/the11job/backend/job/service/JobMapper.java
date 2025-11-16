@@ -15,29 +15,30 @@ public class JobMapper {
     // 포맷터는 불변(immutable)이므로 final 필드로 선언
     private final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+    // 서울시 일자리 상세 URL 기본 패턴 정의 (JO_REQST_NO를 파라미터로 사용)
+    private static final String SEOUL_JOB_DETAIL_URL = "https://job.seoul.go.kr/www/jobInfo/getJobInfoDetail.do?joReqstNo=";
+
+
     /**
-     * JobDetail DTO를 Job Entity로 변환합니다.
+     * JobDetail DTO를 Job Entity로 변환합니다. (Company 엔터티 연결은 JobSaverService에서 처리하므로 여기서 매핑하지 않습니다.)
      */
     public Job toEntity(JobDetail detail) {
 
         // 날짜 변환 처리
         LocalDate registrationDate = safeParseDate(detail.getJobRegistrationDate());
+        String joRequestNo = detail.getJoRequestNo(); // 상세 URL 생성을 위해 JO_REQST_NO 추출
 
         // Builder를 사용하여 필요한 필드만 엔터티에 매핑
         return Job.builder()
-                .requestNo(detail.getJoRequestNo())
-                .companyName(detail.getCompanyName())
+                .requestNo(joRequestNo)
                 .title(detail.getJobSubject())
                 .workAddress(detail.getWorkAddress())
                 .jobCodeName(detail.getJobCodeName())
                 .academicName(detail.getAcademicName())
                 .careerName(detail.getCareerConditionName())
-                .hopeWage(detail.getHopeWage())
-                // String -> Integer 안전 변환 적용
-                .weeklyWorkHours(safeParseInt(detail.getWeeklyWorkHours()))
                 .registrationDate(registrationDate)
                 .expirationDate(safeParseClosingDate(detail.getReceiptClosingName())) // 마감일 추출 시도
-                .detailUrl(null)
+                .detailUrl(createDetailUrl(joRequestNo)) // JO_REQST_NO 기반으로 동적 URL 생성
                 .build();
     }
 
@@ -92,5 +93,15 @@ public class JobMapper {
             log.warn("마감일 문자열에서 날짜 추출 실패: {}", closingName);
         }
         return null;
+    }
+
+    /**
+     * JO_REQST_NO를 기반으로 상세 페이지 URL을 동적으로 생성합니다.
+     */
+    private String createDetailUrl(String joRequestNo) {
+        if (joRequestNo == null || joRequestNo.trim().isEmpty()) {
+            return null;
+        }
+        return SEOUL_JOB_DETAIL_URL + joRequestNo;
     }
 }

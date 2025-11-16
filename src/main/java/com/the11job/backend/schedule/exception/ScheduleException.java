@@ -8,11 +8,13 @@ import com.the11job.backend.global.exception.ErrorCode;
  */
 public class ScheduleException extends BaseException {
 
+    // 에러 코드와 기본 메시지를 받는 생성자
     public ScheduleException(ErrorCode errorCode) {
         super(errorCode);
     }
 
-    public ScheduleException(ErrorCode errorCode, String message) {
-        super(errorCode, message);
+    // 에러 코드와 상세 메시지를 받는 생성자 (디버깅 또는 사용자에게 더 자세한 정보 전달용)
+    public ScheduleException(ErrorCode errorCode, String detailMessage) {
+        super(errorCode, detailMessage);
     }
 }
