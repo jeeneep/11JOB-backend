@@ -6,6 +6,7 @@ import com.the11job.backend.global.filter.LogoutFilter;
 import com.the11job.backend.global.util.JWTUtil;
 import com.the11job.backend.user.repository.RefreshRepository;
 import com.the11job.backend.user.repository.UserRepository;
+import java.util.List;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,15 +14,12 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -87,7 +85,8 @@ public class SecurityConfig {
 
         // 경로별 인가(Authorization) 설정
         http.authorizeHttpRequests((auth) -> auth
-                .requestMatchers("/login", "/api/user/join", "/api/user/emailSend", "/api/user/emailCheck", "/api/reissue").permitAll()
+                .requestMatchers("/", "/login", "/api/user/join", "/api/user/emailSend", "/api/user/emailCheck",
+                        "/api/reissue").permitAll() // <-- "/" 경로 추가
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
@@ -102,7 +101,9 @@ public class SecurityConfig {
 
         // 2. 로그인 필터: 기존의 UsernamePasswordAuthenticationFilter 위치를 우리가 만든 LoginFilter로 대체한다.
         http
-                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil, refreshRepository), UsernamePasswordAuthenticationFilter.class);
+                .addFilterAt(
+                        new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil, refreshRepository),
+                        UsernamePasswordAuthenticationFilter.class);
 
         // 3. 로그아웃 필터: 로그인 필터보다는 뒤, JWT 필터와 비슷한 위치에서 작동하도록 설정한다.
         http

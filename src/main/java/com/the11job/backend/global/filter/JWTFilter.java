@@ -1,21 +1,20 @@
 package com.the11job.backend.global.filter;
 
+import com.the11job.backend.global.exception.ErrorCode;
 import com.the11job.backend.global.util.JWTUtil;
 import com.the11job.backend.user.entity.User;
 import com.the11job.backend.user.exception.UserException;
-import com.the11job.backend.user.exception.UserExceptionType;
 import com.the11job.backend.user.repository.UserRepository;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
 
 public class JWTFilter extends OncePerRequestFilter {
 
@@ -50,7 +49,7 @@ public class JWTFilter extends OncePerRequestFilter {
         String email = jwtUtil.getEmail(accessToken);
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserException(UserExceptionType.USER_NOT_EXIST)); // 4. DB에서 User 객체를 찾음
+                .orElseThrow(() -> new UserException(ErrorCode.USER_NOT_EXIST)); // 4. DB에서 User 객체를 찾음
 
         // Principal 자리에 'User' 객체 자체를 넣습니다.
         Authentication authToken = new UsernamePasswordAuthenticationToken(

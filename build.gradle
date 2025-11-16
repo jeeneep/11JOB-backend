@@ -22,6 +22,8 @@ configurations {
 
 repositories {
     mavenCentral()
+    // Spring Cloud 의존성 (2.x 버전대)을 해결하기 위해 Spring Release Repository 추가
+    maven { url 'https://repo.spring.io/release' }
 }
 
 dependencies {
@@ -33,38 +35,33 @@ dependencies {
     implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
 
     // 2. Querydsl Annotation Processor (Q-Class 자동 생성기) 설정
-    // Annotation Processor가 JPA 엔티티를 찾을 수 있도록 설정
     annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
 
-    // 3. JPA Annotation Processor 설정 (jakarta.persistence.* 사용)
-    // Querydsl이 JPA 엔티티 메타데이터를 올바르게 처리하도록 지원
+    // 3. JPA Annotation Processor 설정
     annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
-    // 4. Lombok과 함께 사용할 경우 추가 설정 (필수)
-    // Lombok과 Querydsl이 충돌하지 않도록 처리
+    // 4. Lombok과 함께 사용할 경우 추가 설정
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
 
     compileOnly 'org.projectlombok:lombok'
-    runtimeOnly 'com.h2database:h2'
-    runtimeOnly 'com.mysql:mysql-connector-j'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    // WebClient 사용을 위해 WebFlux 추가 (MVC와 함께 사용 가능)
+    // WebClient 사용
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
-    // Spring Boot 3+에서 JAXB 사용을 위한 의존성 (Java 9 이상 환경에 필수)
+    // Spring Boot 3+에서 JAXB 사용
     implementation 'jakarta.xml.bind:jakarta.xml.bind-api'
     runtimeOnly 'org.glassfish.jaxb:jaxb-runtime'
 
-    // AWS S3
+    // AWS S3 (AmazonS3Client 사용을 위해 Spring Cloud AWS 2.x 버전 유지 및 starter 사용)
     implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 
     // --- DB 관련 ---
-    implementation 'mysql:mysql-connector-java:8.0.33'
     runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'com.mysql:mysql-connector-j'
 
     // --- JWT ---
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
@@ -75,15 +72,15 @@ dependencies {
     implementation 'com.sun.mail:jakarta.mail:2.0.1'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // --- 문서화 ---
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
 
     // --- 테스트 ---
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
-    implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
-
 }
 
 tasks.named('test') {

@@ -1,20 +1,20 @@
 package com.the11job.backend.project.service;
 
 // FileStorageService 임포트 없음
+
+import com.the11job.backend.global.exception.ErrorCode;
 import com.the11job.backend.project.dto.ProjectDto;
+import com.the11job.backend.project.dto.ProjectResponseDto;
 import com.the11job.backend.project.entity.Project;
+import com.the11job.backend.project.exception.ProjectException;
 import com.the11job.backend.project.repository.ProjectRepository;
 import com.the11job.backend.user.entity.User;
-import com.the11job.backend.user.exception.UserException;       // ✅ 예외 임포트
-import com.the11job.backend.user.exception.UserExceptionType; // ✅ 예외 타입 임포트
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.List;
-import com.the11job.backend.project.dto.ProjectResponseDto;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -101,11 +101,10 @@ public class ProjectService {
     private Project findProjectByIdAndCheckOwnership(User user, Long projectId) {
         // 1. 프로젝트 ID로 엔티티 조회
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다. (ID: " + projectId + ")"));
-
+                .orElseThrow(() -> new ProjectException(ErrorCode.NOT_FOUND_PROJECT)); // P404 반환
         // 2. [보안] "내 것"이 맞는지 확인
         if (!project.getUser().getId().equals(user.getId())) {
-            throw new UserException(UserExceptionType.FORBIDDEN_ACCESS);
+            throw new ProjectException(ErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         return project;

@@ -1,4 +1,7 @@
-package com.the11job.backend.global.exception;
+package com.the11job.backend.api.exception;
+
+import com.the11job.backend.global.exception.BaseException;
+import com.the11job.backend.global.exception.ErrorCode;
 
 // BaseException을 상속하여 ExceptionControllerAdvice에서 통합 처리
 public class ApiClientException extends BaseException {

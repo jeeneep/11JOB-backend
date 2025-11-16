@@ -1,6 +1,6 @@
 package com.the11job.backend.api.seouljob;
 
-import com.the11job.backend.global.exception.ApiClientException;
+import com.the11job.backend.api.exception.ApiClientException;
 import com.the11job.backend.global.exception.ErrorCode;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
