@@ -1,6 +1,5 @@
 package com.the11job.backend.global.config;
 
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -23,11 +22,13 @@ public class S3Config {
 
     @Bean
     public AmazonS3Client amazonS3Client() {
-        AWSCredentials basicAWSCredentials = new BasicAWSCredentials(accessKey, secretKey);
+        //accessKey, secretKey, region 값으로 S3에 접근 가능한 객체 등록
+        BasicAWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
+
         return (AmazonS3Client) AmazonS3ClientBuilder
                 .standard()
-                .withCredentials(new AWSStaticCredentialsProvider(basicAWSCredentials))
                 .withRegion(region)
+                .withCredentials(new AWSStaticCredentialsProvider(credentials))
                 .build();
     }
 }

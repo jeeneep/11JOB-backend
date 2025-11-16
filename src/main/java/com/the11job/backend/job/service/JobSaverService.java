@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class JobSaverService {
 
     private final JobRepository jobRepository;
-    private final JobMapper jobMapper; // JobMapper 주입
+    private final JobMapper jobMapper;
     private final CompanyRepository companyRepository;
 
     /**
@@ -39,28 +39,28 @@ public class JobSaverService {
                 // DTO를 Entity로 변환 (아직 Company 연결 전)
                 Job newJob = jobMapper.toEntity(detail);
 
+                // JobDetail DTO에서 기업명을 직접 추출하여 NullPointerException 방지
+                String companyName = detail.getCompanyName();
+
                 // Company 엔터티 처리 (신규 또는 재활용)
-                Company company = getOrCreateCompany(newJob.getCompanyName());
-                // Job 엔터티에 company 필드가 없으므로, 현재는 Job 저장만 진행
+                Company company = getOrCreateCompany(companyName);
 
                 // DB에 이미 존재하는 공고인지 requestNo(외부 고유 ID)로 확인
                 Optional<Job> existingJob = jobRepository.findByRequestNo(newJob.getRequestNo());
 
-                // ... (저장/갱신 로직 유지)
                 if (existingJob.isPresent()) {
                     Job jobToUpdate = existingJob.get();
                     jobToUpdate.update(newJob);
-                    jobToUpdate.setCompany(company);
+                    jobToUpdate.setCompany(company); // Company 연결
                     jobRepository.save(jobToUpdate);
                     updateCount++;
                 } else {
-                    newJob.setCompany(company);
+                    newJob.setCompany(company); // Company 연결
                     jobRepository.save(newJob);
                     newCount++;
                 }
 
             } catch (RuntimeException e) {
-                // ... (오류 처리 로직 유지)
                 log.error("채용 정보 저장/갱신 중 오류 발생 (공고 ID: {}). 현재 청크 롤백 예정.", requestNo, e);
                 throw new RuntimeException("DB 저장 오류로 인해 현재 청크 롤백 (ID: " + requestNo + ")", e);
             }
@@ -76,7 +76,10 @@ public class JobSaverService {
      * @return Company 엔터티 (신규 또는 기존)
      */
     private Company getOrCreateCompany(String companyName) {
-        // 기업명은 API 응답에서 Null이 아니라고 가정하고, 필요하다면 정규화 로직 추가
+        // 기업명 Null 체크 및 정규화
+        if (companyName == null || companyName.trim().isEmpty()) {
+            companyName = "미상"; // Null/Empty인 경우 기본값 할당
+        }
         String normalizedName = companyName.trim();
 
         return companyRepository.findByName(normalizedName)

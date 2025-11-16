@@ -1,6 +1,9 @@
+// src/main/java/com/the11job.backend.schedule.repository/ScheduleRepository.java (수정 필요)
+
 package com.the11job.backend.schedule.repository;
 
 import com.the11job.backend.schedule.entity.Schedule;
+import com.the11job.backend.user.entity.User;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -8,9 +11,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
-    // 특정 사용자의 모든 일정을 조회
-    List<Schedule> findAllByUserIdOrderByScheduleDateAsc(Long userId);
+    // User 엔티티 객체를 직접 받아 일정을 조회하는 메서드
+    List<Schedule> findAllByUserOrderByScheduleDateAsc(User user);
 
-    // 특정 사용자의 특정 기업에 대한 일정을 조회
-    List<Schedule> findAllByUserIdAndCompanyIdOrderByScheduleDateAsc(Long userId, Long companyId);
 }

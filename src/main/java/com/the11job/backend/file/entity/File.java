@@ -33,7 +33,7 @@ public class File extends BaseEntity {
 
     // Schedule 엔터티와 ManyToOne 관계 설정 (하나의 Schedule에 여러 파일 업로드 가능)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_id", nullable = false)
+    @JoinColumn(name = "schedule_id")
     private Schedule schedule;
 
     @Builder
