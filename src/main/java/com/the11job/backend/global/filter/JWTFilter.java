@@ -30,13 +30,17 @@ public class JWTFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // "access" 헤더 대신 표준인 "Authorization" 헤더를 사용하는 것을 권장
-        String accessToken = request.getHeader("access");
+        // 1. Authorization 헤더를 읽음
+        String authorizationHeader = request.getHeader("Authorization");
 
-        if (accessToken == null) {
+        // 2. 헤더가 없거나 "Bearer "로 시작하지 않으면 필터 통과 (인증 실패)
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
+
+        // 3. "Bearer " 접두사 (7글자)를 제거하고 토큰 본체만 추출
+        String accessToken = authorizationHeader.substring(7);
 
         try {
             jwtUtil.isExpired(accessToken);
