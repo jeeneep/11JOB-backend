@@ -105,11 +105,11 @@ public class JobBatchService {
     private final JobSaverService jobSaverService; // JobSaverService는 트랜잭션 분리 및 저장을 담당
 
     // API 호출 관련 상수 (이제 단일 호출이므로 MAX_DAILY_CALLS는 무시됨)
-    private static final int MAX_RECORDS_PER_CALL = 1000;
+    private static final int MAX_RECORDS_PER_CALL = 100;
 
     // fetchAllJobPostings는 단 한번의 API 호출만 실행
     public void fetchAllJobPostings() {
-        log.info("=== [배치 시작] 서울시 채용 정보 단일 호출 시작 (1-1000건) ===");
+        log.info("=== [배치 시작] 서울시 채용 정보 단일 호출 시작 (1-100건) ===");
 
         int startIndex = 1;
         int endIndex = MAX_RECORDS_PER_CALL;

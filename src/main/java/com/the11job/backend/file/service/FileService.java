@@ -50,12 +50,15 @@ public class FileService {
                                 .originalName(file.getOriginalFilename())
                                 .storagePath(fileUrl)
                                 .contentType(file.getContentType())
-                                .schedule(schedule)
+                                //.schedule(schedule)
                                 .build();
+
+                        // DB 저장 전, Schedule 엔티티의 편의 메서드를 통해 양방향 관계 설정 및 동기화
+                        schedule.addFile(fileEntity);
 
                         // DB 저장 및 Schedule 리스트에 추가 (JPA 연관관계 관리)
                         File savedFile = fileRepository.save(fileEntity);
-                        schedule.getFiles().add(savedFile);
+                        //schedule.getFiles().add(savedFile);
                         return savedFile;
 
                     } catch (IOException e) {

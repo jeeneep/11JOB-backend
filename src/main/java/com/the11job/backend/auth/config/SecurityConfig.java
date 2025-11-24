@@ -86,7 +86,8 @@ public class SecurityConfig {
         // 경로별 인가(Authorization) 설정
         http.authorizeHttpRequests((auth) -> auth
                 .requestMatchers("/", "/login", "/api/user/join", "/api/user/emailSend", "/api/user/emailCheck",
-                        "/api/reissue").permitAll() // <-- "/" 경로 추가
+                        "/api/reissue").permitAll()
+                //.requestMatchers("/api/jobs/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()

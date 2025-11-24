@@ -2,7 +2,6 @@ package com.the11job.backend.global.util;
 
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.the11job.backend.global.exception.BaseException;
 import com.the11job.backend.global.exception.ErrorCode;
@@ -52,18 +51,19 @@ public class S3Uploader {
     }
 
     private String upload(File uploadFile, String dirName) {
-        String fileName = dirName + "/" + changedImageName(uploadFile.getName());
+        // uploadFile.getName()은 이제 고유한 UUID 파일명(확장자 포함)을 가집니다.
+        String fileName = dirName + "/" + uploadFile.getName();
         return putS3(uploadFile, fileName);
     }
 
     /**
-     * 실질적인 S3에 객체를 저장하는 부분
+     * 실질적인 S3에 객체를 저장하는 부분 🔥 [ACL 제거]: The bucket does not allow ACLs 오류 해결을 위해 withCannedAcl 설정을 제거했습니다.
      */
     private String putS3(File uploadFile, String fileName) {
         try {
             amazonS3Client.putObject(
                     new PutObjectRequest(bucket, fileName, uploadFile)
-                            .withCannedAcl(CannedAccessControlList.PublicRead)
+                    // .withCannedAcl(CannedAccessControlList.PublicRead) // 🚨 제거됨
             );
             return amazonS3Client.getUrl(bucket, fileName).toString();
         } catch (SdkClientException e) {
@@ -85,19 +85,28 @@ public class S3Uploader {
     }
 
     /**
-     * MultipartFile을 java.io.File로 변환합니다. (로컬 임시 파일 생성)
+     * MultipartFile을 java.io.File로 변환합니다. (로컬 임시 파일 생성) 🔥 [안정화]: 파일명 충돌 방지 및 시스템 임시 디렉토리 사용으로 변경했습니다.
      */
     private Optional<File> convert(MultipartFile file) throws IOException {
-        // 임시 파일 생성 시, 파일 경로를 명시적으로 지정하여 예상치 못한 위치에 저장되는 것을 방지
-        // 현재는 파일명으로만 생성
-        File convertFile = new File(file.getOriginalFilename());
-        if (convertFile.createNewFile()) {
-            try (FileOutputStream fos = new FileOutputStream(convertFile)) {
-                fos.write(file.getBytes());
+        // 1. 고유한 임시 파일명 생성
+        String uniqueFileName = changedImageName(file.getOriginalFilename());
+
+        // 2. 시스템 임시 디렉토리에 고유한 파일명으로 File 객체 생성
+        File convertFile = new File(System.getProperty("java.io.tmpdir"), uniqueFileName);
+
+        try {
+            if (convertFile.createNewFile()) {
+                try (FileOutputStream fos = new FileOutputStream(convertFile)) {
+                    fos.write(file.getBytes());
+                }
+                return Optional.of(convertFile);
             }
-            return Optional.of(convertFile);
+        } catch (IOException e) {
+            log.error("로컬 임시 파일 생성 중 IO 예외 발생: {}", convertFile.getAbsolutePath(), e);
+            throw e;
         }
-        return Optional.empty();
+
+        return Optional.empty(); // 파일 생성에 실패한 경우
     }
 
     /**
