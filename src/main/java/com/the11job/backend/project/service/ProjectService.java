@@ -1,7 +1,8 @@
 package com.the11job.backend.project.service;
 
+import com.the11job.backend.file.service.FileService;
+import com.the11job.backend.global.exception.BaseException;
 import com.the11job.backend.global.exception.ErrorCode;
-import com.the11job.backend.global.util.S3Uploader;
 import com.the11job.backend.project.dto.ProjectDto;
 import com.the11job.backend.project.dto.ProjectResponseDto;
 import com.the11job.backend.project.entity.Project;
@@ -22,21 +23,21 @@ import org.springframework.web.multipart.MultipartFile;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
-    private final S3Uploader s3Uploader;
+    private final FileService fileService;
 
     private static final String S3_DIRECTORY_NAME = "project"; // S3 저장 디렉토리명
 
-    // 1. 새 프로젝트 1개 등록 (이미지 저장 추가)
+    // 1. 새 프로젝트 1개 등록 (이미지 저장 로직 FileService 위임)
     @Transactional
     public void addProject(User user, ProjectDto projectDto, MultipartFile image) {
 
         String imageUrl = null;
         if (image != null && !image.isEmpty()) {
             try {
-                // 이미지를 S3에 업로드
-                imageUrl = s3Uploader.upload(image, S3_DIRECTORY_NAME);
-            } catch (IOException e) {
-                // S3Uploader 내부에서 발생하는 예외를 적절히 처리하거나 BaseException으로 변환해야 함
+                // FileService를 사용하여 업로드하고 최종 URL을 받음 (FileService 내부에서 S3Uploader 사용)
+                // uploadAndReplaceSingleFile 메서드는 기존 파일이 없으면 새 파일 URL만 반환하는 로직으로 재사용 가능
+                imageUrl = fileService.uploadAndReplaceSingleFile(null, image, S3_DIRECTORY_NAME);
+            } catch (BaseException e) { // FileService에서 던지는 예외를 받음
                 throw new ProjectException(ErrorCode.PROJECT_IMAGE_UPLOAD_FAIL, "이미지 업로드에 실패했습니다.", e);
             }
         }
@@ -54,45 +55,25 @@ public class ProjectService {
         projectRepository.save(project);
     }
 
-    // 2. 프로젝트 1개 수정 (기존 이미지 관리 로직 추가)
+    // 2. 프로젝트 1개 수정 (기존 이미지 관리 로직 FileService 위임)
     @Transactional
     public void updateProject(User user, Long projectId, ProjectDto projectDto, MultipartFile image) {
 
-        Project project = findProjectByIdAndCheckOwnership(user, projectId); // 1. 조회 및 권한 확인
+        Project project = findProjectByIdAndCheckOwnership(user, projectId);
 
         String oldImageUrl = project.getImageUrl();
-        String newImageUrl = oldImageUrl; // 기본적으로 기존 이미지 URL을 유지
+        String newImageUrl = oldImageUrl;
 
-        // ❗️ 이미지 파일 처리 로직
-        if (image != null && !image.isEmpty()) {
-            // 새 파일이 넘어온 경우 (변경)
-            try {
-                // 1) 새 파일을 S3에 업로드
-                newImageUrl = s3Uploader.upload(image, S3_DIRECTORY_NAME);
-
-                // 2) 기존 파일이 있었다면 S3에서 삭제
-                if (StringUtils.hasText(oldImageUrl)) {
-                    s3Uploader.deleteFile(oldImageUrl);
-                }
-            } catch (IOException e) {
-                // 💡 수정된 부분: 프로젝트 도메인 고유 코드로 변경
-                throw new ProjectException(ErrorCode.PROJECT_IMAGE_UPLOAD_FAIL, "이미지 업로드에 실패했습니다.", e);
-            }
-        } else {
-            // 파일이 넘어오지 않은 경우 (기존 이미지 유지 또는 삭제)
-
-            // 프론트엔드에서 '이미지 삭제' 요청을 별도로 처리하지 않고,
-            // 새로운 이미지가 넘어오지 않은 경우 기존 이미지를 유지한다고 가정
-            newImageUrl = oldImageUrl;
-
-            // 만약 프론트엔드에서 '이미지 삭제' 요청을 따로 보내는 경우:
-            // if (requestDto.isImageDeleted() && StringUtils.hasText(oldImageUrl)) {
-            //     s3Uploader.deleteFile(oldImageUrl);
-            //     newImageUrl = null;
-            // } else {
-            //     newImageUrl = oldImageUrl;
-            // }
+        // 이미지 파일 처리 로직 (FileService.uploadAndReplaceSingleFile 재사용)
+        // FileService의 해당 메소드는 기존 파일 삭제, 새 파일 업로드, 최종 URL 반환을 모두 처리합니다.
+        try {
+            newImageUrl = fileService.uploadAndReplaceSingleFile(oldImageUrl, image, S3_DIRECTORY_NAME);
+        } catch (BaseException e) {
+            throw new ProjectException(ErrorCode.PROJECT_IMAGE_UPLOAD_FAIL, "이미지 업데이트에 실패했습니다.", e);
         }
+
+        // 프론트엔드에서 '이미지 삭제' 요청을 별도로 처리해야 한다면 로직 추가 필요.
+        // 현재는 새 파일이 없으면 oldImageUrl 유지하는 로직이 FileService 내부에 있음.
 
         // 2. 엔티티 업데이트
         project.update(
@@ -101,43 +82,43 @@ public class ProjectService {
                 projectDto.getStartDate(),
                 projectDto.getEndDate(),
                 projectDto.getLinkUrl(),
-                newImageUrl // S3 URL 저장
+                newImageUrl
         );
-
-        // projectRepository.save(project); // JPA 변경 감지(Dirty Checking)로 생략 가능
     }
 
-    // 3. 프로젝트 1개 삭제 (S3 파일 삭제 추가)
+    // 3. 프로젝트 1개 삭제 (S3 파일 삭제 FileService 위임)
     @Transactional
     public void deleteProject(User user, Long projectId) {
 
-        Project project = findProjectByIdAndCheckOwnership(user, projectId); // 1. 조회 및 권한 확인
+        Project project = findProjectByIdAndCheckOwnership(user, projectId);
 
         String imageUrl = project.getImageUrl();
 
-        // ❗️ S3 파일 삭제 로직 추가
+        // S3 파일 삭제 로직 FileService 위임
         if (StringUtils.hasText(imageUrl)) {
-            s3Uploader.deleteFile(imageUrl);
+            // FileService를 사용하여 S3 파일 삭제
+            fileService.deleteSingleFile(imageUrl);
         }
 
         // 2. DB에서 삭제
         projectRepository.delete(project);
     }
 
-    // (findMyProjects 및 findProjectByIdAndCheckOwnership 메서드는 이전과 동일)
+    // 4. 내 프로젝트 전체 조회 (URL 변환 적용)
     @Transactional(readOnly = true)
     public List<ProjectResponseDto> findMyProjects(User user) {
         return projectRepository.findByUser(user)
                 .stream()
-                .map(ProjectResponseDto::new)
+                // 🌟 DTO 생성 시 FileService를 함께 전달하여 URL 변환 처리
+                .map(project -> new ProjectResponseDto(project, fileService))
                 .collect(Collectors.toList());
     }
 
+    // ... (findProjectByIdAndCheckOwnership 메서드는 이전과 동일)
     private Project findProjectByIdAndCheckOwnership(User user, Long projectId) {
-        // 1. 프로젝트 ID로 엔티티 조회
+        // ... (내용 생략)
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectException(ErrorCode.NOT_FOUND_PROJECT));
-        // 2. [보안] "내 것"이 맞는지 확인
         if (!project.getUser().getId().equals(user.getId())) {
             throw new ProjectException(ErrorCode.PROJECT_ACCESS_DENIED);
         }

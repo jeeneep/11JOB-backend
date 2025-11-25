@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value; // 🌟 Value import 추가
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,11 +26,39 @@ public class FileService {
     private final S3Uploader s3Uploader;
     private final FileRepository fileRepository;
 
+    // 🌟 S3 Base URL 주입 필드 추가 (application.yml에서 설정 필요)
+    @Value("${cloud.aws.s3.endpoint-url}")
+    private String s3BaseUrl;
+
+    // 이미지 URL 변환 로직 추가 🌟
+    /**
+     * S3 객체 키(DB에 저장된 경로)를 완전한 HTTP/HTTPS URL로 변환합니다.
+     * 이 메소드는 Portfolio, Project 등의 조회 DTO 생성 시 사용됩니다.
+     */
+    public String convertToFullUrl(String storagePath) {
+        if (storagePath == null || storagePath.isEmpty()) {
+            return null; // 경로가 없으면 null 반환
+        }
+
+        // 경로가 이미 완전한 URL인 경우 (Schedule처럼 이미 URL이 저장된 경우)
+        if (storagePath.startsWith("http://") || storagePath.startsWith("https://")) {
+            return storagePath;
+        }
+
+        // 경로의 맨 앞 '/'를 제거하여 URL 연결 시 중복 슬래시를 방지합니다.
+        String cleanedPath = storagePath.startsWith("/") ? storagePath.substring(1) : storagePath;
+
+        // S3 Base URL과 경로를 조합하여 완전한 URL을 반환합니다.
+        // Base URL 뒤에 '/'를 붙여 경로를 연결합니다.
+        return s3BaseUrl + "/" + cleanedPath;
+    }
+
     /**
      * S3에 파일을 업로드하고, File 엔티티를 생성하여 Schedule에 연결합니다.
      */
     @Transactional
     public List<File> uploadAndLinkFiles(Schedule schedule, List<MultipartFile> files) {
+        // ... (기존 코드와 동일)
         if (files == null || files.isEmpty()) {
             return Collections.emptyList();
         }
@@ -82,7 +111,7 @@ public class FileService {
      */
     @Transactional
     public void updateFiles(Schedule schedule, List<Long> filesToDelete, List<MultipartFile> newFiles) {
-
+        // ... (기존 코드와 동일)
         // 1. 기존 파일 삭제 처리 (DB 및 S3)
         if (filesToDelete != null && !filesToDelete.isEmpty()) {
             // 삭제할 파일 엔티티 목록 조회
@@ -110,6 +139,7 @@ public class FileService {
      */
     @Transactional
     public void deleteS3FilesForSchedule(List<File> files) {
+        // ... (기존 코드와 동일)
         if (files == null || files.isEmpty()) {
             return;
         }
@@ -131,6 +161,7 @@ public class FileService {
      */
     @Transactional
     public String uploadAndReplaceSingleFile(String oldFileUrl, MultipartFile newFile, String dirName) {
+        // ... (기존 코드와 동일)
         if (newFile == null || newFile.isEmpty()) {
             return oldFileUrl; // 새 파일이 없으면 기존 URL 유지
         }
@@ -159,6 +190,7 @@ public class FileService {
      * 이 메서드는 Portfolio와 Project의 삭제 로직 및 단일 파일 교체 로직에서 사용됩니다.
      */
     public void deleteSingleFile(String fileUrl) {
+        // ... (기존 코드와 동일)
         if (fileUrl == null || fileUrl.isEmpty()) {
             return;
         }

@@ -108,7 +108,8 @@ public class PortfolioService {
         Portfolio detailedPortfolio = findPortfolioById(portfolio.getId());
 
         // 3. "완전한" 엔티티를 DTO로 변환하여 반환
-        return new PortfolioResponseDto(detailedPortfolio);
+        // FileService를 DTO 생성자에 함께 전달하여 URL 변환을 위임
+        return new PortfolioResponseDto(detailedPortfolio, fileService);
     }
 
     @Transactional(readOnly = true)

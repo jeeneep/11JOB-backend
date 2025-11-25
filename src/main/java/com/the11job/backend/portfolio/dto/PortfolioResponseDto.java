@@ -1,12 +1,12 @@
 package com.the11job.backend.portfolio.dto;
 
+import com.the11job.backend.file.service.FileService; // 🌟 FileService import
 import com.the11job.backend.portfolio.entity.ActivityItem;
 import com.the11job.backend.portfolio.entity.CertificateItem;
 import com.the11job.backend.portfolio.entity.EducationItem;
 import com.the11job.backend.portfolio.entity.ExperienceItem;
 import com.the11job.backend.portfolio.entity.LinkItem;
 import com.the11job.backend.portfolio.entity.Portfolio;
-import com.the11job.backend.portfolio.entity.PortfolioItem;
 import lombok.Getter;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,32 +18,35 @@ public class PortfolioResponseDto {
     private Long id;
     private String phone;
     private String address;
-    private String profileImagePath;
+    private String profileImageUrl;
 
     // 2. User 정보 (민감 정보 제외)
     private UserDto user;
 
     private List<EducationItemDto> educations;
-    private List<ExperienceItemDto> experiences; // (추가)
-    private List<ActivityItemDto> activities;   // (추가)
+    private List<ExperienceItemDto> experiences;
+    private List<ActivityItemDto> activities;
     private List<LinkItemDto> links;
     private List<CertificateItemDto> certificates;
 
-    // 4. 엔티티 -> DTO 변환 생성자
-    public PortfolioResponseDto(Portfolio portfolio) {
+    // 4. 엔티티 + FileService -> DTO 변환 생성자 (수정)
+    public PortfolioResponseDto(Portfolio portfolio, FileService fileService) { // FileService 인자 추가
         this.id = portfolio.getId();
         this.phone = portfolio.getPhone();
         this.address = portfolio.getAddress();
-        this.profileImagePath = portfolio.getProfileImagePath();
+
+        // FileService를 사용하여 URL 변환
+        String path = portfolio.getProfileImagePath();
+        this.profileImageUrl = fileService.convertToFullUrl(path);
 
         if (portfolio.getUser() != null) {
             this.user = new UserDto(portfolio.getUser());
         }
 
-
+        // --- DTO 변환 로직 (그대로 유지) ---
         this.educations = portfolio.getItems().stream()
-                .filter(item -> item instanceof EducationItem) // 타입 검사
-                .map(item -> new EducationItemDto((EducationItem) item)) // DTO로 변환
+                .filter(item -> item instanceof EducationItem)
+                .map(item -> new EducationItemDto((EducationItem) item))
                 .collect(Collectors.toList());
 
         this.experiences = portfolio.getItems().stream()
