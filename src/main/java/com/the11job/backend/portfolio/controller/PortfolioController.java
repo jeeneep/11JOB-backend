@@ -49,4 +49,14 @@ public class PortfolioController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
+    @DeleteMapping
+    public ResponseEntity<String> deleteMyPortfolio(@AuthenticationPrincipal User user) {
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+
+        portfolioService.deletePortfolio(user);
+        return ResponseEntity.ok("포트폴리오가 성공적으로 삭제되었습니다.");
+    }
 }

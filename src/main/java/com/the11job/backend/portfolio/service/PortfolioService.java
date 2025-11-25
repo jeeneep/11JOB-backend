@@ -1,21 +1,18 @@
 package com.the11job.backend.portfolio.service;
 
+import com.the11job.backend.global.exception.BaseException;
+import com.the11job.backend.global.exception.ErrorCode;
 import com.the11job.backend.file.service.FileService;
 import com.the11job.backend.portfolio.dto.PortfolioRegistrationRequestDto;
 import com.the11job.backend.portfolio.dto.PortfolioResponseDto;
-import com.the11job.backend.portfolio.entity.ActivityItem;
-import com.the11job.backend.portfolio.entity.CertificateItem;
-import com.the11job.backend.portfolio.entity.EducationItem;
-import com.the11job.backend.portfolio.entity.ExperienceItem;
-import com.the11job.backend.portfolio.entity.LinkItem;
-import com.the11job.backend.portfolio.entity.Portfolio;
+import com.the11job.backend.portfolio.entity.*;
 import com.the11job.backend.portfolio.repository.PortfolioRepository;
 import com.the11job.backend.user.entity.User;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -62,8 +59,7 @@ public class PortfolioService {
         }
         if (requestDto.getExperiences() != null) {
             requestDto.getExperiences().forEach(dto ->
-                    portfolio.addItem(
-                            new ExperienceItem(dto.getInstitutionName(), dto.getStartDate(), dto.getEndDate()))
+                    portfolio.addItem(new ExperienceItem(dto.getInstitutionName(), dto.getStartDate(), dto.getEndDate()))
             );
         }
         if (requestDto.getActivities() != null) {
@@ -112,7 +108,8 @@ public class PortfolioService {
         Portfolio detailedPortfolio = findPortfolioById(portfolio.getId());
 
         // 3. "완전한" 엔티티를 DTO로 변환하여 반환
-        return new PortfolioResponseDto(detailedPortfolio);
+        // FileService를 DTO 생성자에 함께 전달하여 URL 변환을 위임
+        return new PortfolioResponseDto(detailedPortfolio, fileService);
     }
 
     @Transactional(readOnly = true)
