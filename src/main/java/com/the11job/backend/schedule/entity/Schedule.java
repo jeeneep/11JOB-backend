@@ -69,6 +69,14 @@ public class Schedule extends BaseEntity {
         this.scheduleDate = scheduleDate;
     }
 
+    // 양쪽 관계를 동시에 설정하여 동기화하는 편의 메서드
+    public void addFile(File file) {
+        this.files.add(file);
+        if (file.getSchedule() != this) {
+            file.setSchedule(this);
+        }
+    }
+
     // ----------------------------------------------------
     // 연관관계 편의 메서드 (ScheduleDetail 추가/제거)
     // ----------------------------------------------------

@@ -36,6 +36,11 @@ public class File extends BaseEntity {
     @JoinColumn(name = "schedule_id")
     private Schedule schedule;
 
+    // ScheduleService.addFile 편의 메서드를 위한 set 메서드
+    public void setSchedule(Schedule schedule) {
+        this.schedule = schedule;
+    }
+
     @Builder
     public File(String originalName, String storagePath, String contentType, Schedule schedule) {
         this.originalName = originalName;

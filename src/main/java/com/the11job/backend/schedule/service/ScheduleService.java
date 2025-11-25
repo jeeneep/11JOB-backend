@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -31,31 +32,32 @@ public class ScheduleService {
 
     // --- C (Create) ---
     @Transactional
-    public Schedule createSchedule(User user, ScheduleRequest request) {
-
-        // 1. Company 엔티티 검증 및 조회 (기업 이름으로 조회)
+    public Schedule createSchedule(User user, ScheduleRequest request, List<MultipartFile> files) {
+        // 1. Company 엔티티 검증 및 조회 (Company 엔티티는 영속 상태)
         Company company = companyRepository.findByName(request.getCompanyName())
                 .orElseThrow(() -> new CompanyException(ErrorCode.NOT_FOUND_COMPANY,
                         "해당 기업 이름에 대한 정보를 찾을 수 없습니다: " + request.getCompanyName()));
 
-        // 2. Schedule 엔티티 생성 및 저장
+        // 2. Schedule 엔티티 생성
         Schedule schedule = Schedule.builder()
-                .user(user) // 💡 User 필드에 User 엔티티 객체 자체를 저장
+                .user(user)
                 .company(company)
                 .title(request.getTitle())
                 .scheduleDate(request.getScheduleDate())
                 .build();
 
-        Schedule savedSchedule = scheduleRepository.save(schedule);
+        // save() 대신 saveAndFlush()를 사용하여 ID가 DB에 기록됨을 보장
+        Schedule savedSchedule = scheduleRepository.saveAndFlush(schedule);
 
-        // 3. ScheduleDetail 목록 저장
+        log.info("Schedule saved with ID: {}", savedSchedule.getId());
+
+        // 3. ScheduleDetail 목록 저장 (savedSchedule 사용)
         if (request.getDetails() != null && !request.getDetails().isEmpty()) {
             saveScheduleDetails(savedSchedule, request.getDetails());
         }
 
-        // 4. 파일 업로드 및 연결
-        if (request.getFiles() != null && !request.getFiles().isEmpty()) {
-            fileService.uploadAndLinkFiles(savedSchedule, request.getFiles());
+        if (files != null && !files.isEmpty()) { // request.getFiles() 대신 외부 files 인자 사용
+            fileService.uploadAndLinkFiles(savedSchedule, files);
         }
 
         return savedSchedule;
@@ -76,8 +78,8 @@ public class ScheduleService {
 
     // --- U (Update) ---
     @Transactional
-    public Schedule updateSchedule(User user, Long scheduleId, ScheduleRequest request) {
-
+    public Schedule updateSchedule(User user, Long scheduleId, ScheduleRequest request,
+                                   List<MultipartFile> newFiles) { // 🔥 인자 추가
         Schedule schedule = findScheduleByIdAndCheckOwnership(user, scheduleId); // 1. 조회 및 소유권 확인
 
         // 2. 일정 기본 내용 갱신
@@ -90,8 +92,8 @@ public class ScheduleService {
         updateScheduleDetails(schedule, request.getDetails());
 
         // 4. 파일 갱신 로직
-        if (request.getFilesToDelete() != null || (request.getFiles() != null && !request.getFiles().isEmpty())) {
-            fileService.updateFiles(schedule, request.getFilesToDelete(), request.getFiles());
+        if (request.getFilesToDelete() != null || (newFiles != null && !newFiles.isEmpty())) {
+            fileService.updateFiles(schedule, request.getFilesToDelete(), newFiles);
         }
 
         return schedule; // 변경 감지(Dirty Checking)로 자동 업데이트 후 반환
@@ -134,8 +136,8 @@ public class ScheduleService {
         List<ScheduleDetail> details = detailRequests.stream()
                 .map(detailRequest -> ScheduleDetail.builder()
                         .schedule(schedule)
-                        .title(detailRequest.getTitle())
-                        .content(detailRequest.getContent())
+                        .title(detailRequest.getDetailTitle())
+                        .content(detailRequest.getDetailContent())
                         .build())
                 .toList();
 

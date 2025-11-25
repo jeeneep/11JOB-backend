@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/schedules")
@@ -33,9 +34,10 @@ public class ScheduleController {
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<ScheduleResponse> createSchedule(
             @AuthenticationPrincipal User user,
-            @RequestPart("dto") @Valid ScheduleRequest request
+            @RequestPart("dto") @Valid ScheduleRequest request,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
-        Schedule schedule = scheduleService.createSchedule(user, request);
+        Schedule schedule = scheduleService.createSchedule(user, request, files);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new ScheduleResponse(schedule));
     }
@@ -64,9 +66,10 @@ public class ScheduleController {
     public ResponseEntity<ScheduleResponse> updateSchedule(
             @AuthenticationPrincipal User user,
             @PathVariable Long scheduleId,
-            @RequestPart("dto") @Valid ScheduleRequest request
+            @RequestPart("dto") @Valid ScheduleRequest request,
+            @RequestPart(value = "files", required = false) List<MultipartFile> newFiles
     ) {
-        Schedule updatedSchedule = scheduleService.updateSchedule(user, scheduleId, request);
+        Schedule updatedSchedule = scheduleService.updateSchedule(user, scheduleId, request, newFiles);
 
         return ResponseEntity.ok(new ScheduleResponse(updatedSchedule));
     }
