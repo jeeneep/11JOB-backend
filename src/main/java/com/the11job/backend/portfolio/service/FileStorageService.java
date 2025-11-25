@@ -1,3 +1,4 @@
+/*
 package com.the11job.backend.portfolio.service;
 
 import org.springframework.stereotype.Service;
@@ -17,3 +18,4 @@ public class FileStorageService {
         return "/uploads/" + storedFilename;
     }
 }
+*/

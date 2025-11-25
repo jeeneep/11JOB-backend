@@ -1,5 +1,8 @@
 package com.the11job.backend.portfolio.service;
 
+import com.the11job.backend.global.exception.BaseException;
+import com.the11job.backend.global.exception.ErrorCode;
+import com.the11job.backend.file.service.FileService;
 import com.the11job.backend.portfolio.dto.PortfolioRegistrationRequestDto;
 import com.the11job.backend.portfolio.dto.PortfolioResponseDto;
 import com.the11job.backend.portfolio.entity.*;
@@ -16,7 +19,9 @@ import java.util.Optional;
 public class PortfolioService {
 
     private final PortfolioRepository portfolioRepository;
-    private final FileStorageService fileStorageService;
+    private final FileService fileService;
+
+    private static final String S3_DIRECTORY_NAME = "portfolio"; // S3 디렉토리 설정
 
     @Transactional
     public void savePortfolio(User user,
@@ -25,7 +30,12 @@ public class PortfolioService {
 
         Optional<Portfolio> existingPortfolioOpt = portfolioRepository.findByUser(user);
 
-        String imagePath = fileStorageService.storeFile(profileImage);
+        String oldImagePath = existingPortfolioOpt.map(Portfolio::getProfileImagePath).orElse(null);
+        String imagePath = oldImagePath; // 기본적으로 기존 경로 유지
+
+        // 1. 이미지 경로 처리 로직 (FileService 위임 및 try-catch 제거)
+        // FileService가 던지는 BaseException은 RuntimeException이므로 try-catch 생략
+        imagePath = fileService.uploadAndReplaceSingleFile(oldImagePath, profileImage, S3_DIRECTORY_NAME);
 
         Portfolio portfolio;
         if (existingPortfolioOpt.isPresent()) {
@@ -70,6 +80,23 @@ public class PortfolioService {
 
         portfolioRepository.save(portfolio);
     }
+
+    // 포트폴리오 삭제 시 파일 정리 로직 (추가)
+    @Transactional
+    public void deletePortfolio(User user) {
+        Portfolio portfolio = portfolioRepository.findByUser(user)
+                .orElseThrow(() -> new IllegalArgumentException("삭제할 포트폴리오가 존재하지 않습니다."));
+
+        String imageUrl = portfolio.getProfileImagePath();
+
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            fileService.deleteSingleFile(imageUrl);
+        }
+
+        // DB에서 포트폴리오 엔티티 삭제
+        portfolioRepository.delete(portfolio);
+    }
+
 
     @Transactional(readOnly = true)
     public PortfolioResponseDto findMyPortfolioDto(User user) {
