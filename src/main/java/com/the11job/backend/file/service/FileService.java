@@ -50,15 +50,12 @@ public class FileService {
                                 .originalName(file.getOriginalFilename())
                                 .storagePath(fileUrl)
                                 .contentType(file.getContentType())
-                                //.schedule(schedule)
+                                .schedule(schedule)
                                 .build();
-
-                        // DB 저장 전, Schedule 엔티티의 편의 메서드를 통해 양방향 관계 설정 및 동기화
-                        schedule.addFile(fileEntity);
 
                         // DB 저장 및 Schedule 리스트에 추가 (JPA 연관관계 관리)
                         File savedFile = fileRepository.save(fileEntity);
-                        //schedule.getFiles().add(savedFile);
+                        schedule.getFiles().add(savedFile);
                         return savedFile;
 
                     } catch (IOException e) {
@@ -123,5 +120,50 @@ public class FileService {
                 log.warn("S3 파일 삭제 중 오류 발생 (DB 삭제는 진행): {}", file.getStoragePath(), e);
             }
         });
+    }
+
+    /**
+     * 단일 파일을 S3에 업로드하고 기존 파일을 삭제하여 최종 URL을 반환합니다. 이 메서드는 Portfolio와 Project의 대표 이미지 관리에 사용됩니다.
+     */
+    @Transactional
+    public String uploadAndReplaceSingleFile(String oldFileUrl, MultipartFile newFile, String dirName) {
+        if (newFile == null || newFile.isEmpty()) {
+            return oldFileUrl; // 새 파일이 없으면 기존 URL 유지
+        }
+
+        try {
+            // 1. 새 파일 업로드
+            String newFileUrl = s3Uploader.upload(newFile, dirName);
+
+            // 2. 기존 파일 삭제 (S3 삭제 실패는 로그만 남김)
+            if (oldFileUrl != null && !oldFileUrl.isEmpty()) {
+                deleteSingleFile(oldFileUrl); // S3에서 파일 삭제
+            }
+            return newFileUrl;
+
+        } catch (IOException e) {
+            log.error("단일 파일 업로드 중 IO 예외 발생: {}", newFile.getOriginalFilename(), e);
+            throw new BaseException(ErrorCode.INTERNAL_SERVER_ERROR, "파일 저장 중 입출력 오류가 발생했습니다.", e);
+        } catch (BaseException e) {
+            // S3Uploader가 던진 BaseException을 그대로 던져 상위 서비스가 처리하게 함
+            throw e;
+        }
+    }
+
+    /**
+     * 특정 URL의 S3 파일을 삭제합니다. (DB 엔티티 삭제는 호출자가 처리) 이 메서드는 Portfolio와 Project의 삭제 로직 및 단일 파일 교체 로직에서 사용됩니다.
+     */
+    public void deleteSingleFile(String fileUrl) {
+        if (fileUrl == null || fileUrl.isEmpty()) {
+            return;
+        }
+        try {
+            s3Uploader.deleteFile(fileUrl);
+            log.info("S3 단일 파일 삭제 성공: {}", fileUrl);
+        } catch (BaseException e) {
+            // S3 삭제 실패는 로그만 남기고 호출자에게 예외를 던져 트랜잭션 관리를 위임
+            log.warn("S3 단일 파일 삭제 중 오류 발생: {}", fileUrl, e);
+            throw e;
+        }
     }
 }
