@@ -1,6 +1,9 @@
 package com.the11job.backend.user.service;
 
 import com.the11job.backend.global.exception.ErrorCode;
+import com.the11job.backend.portfolio.service.PortfolioService;
+import com.the11job.backend.project.service.ProjectService;
+import com.the11job.backend.schedule.service.ScheduleService;
 import com.the11job.backend.user.dto.CheckResponse;
 import com.the11job.backend.user.dto.EmailCheckRequest;
 import com.the11job.backend.user.dto.JoinRequest;
@@ -8,22 +11,20 @@ import com.the11job.backend.user.entity.User;
 import com.the11job.backend.user.exception.UserException;
 import com.the11job.backend.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final EmailAuthService emailAuthService;
-
-    public UserService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder,
-                       EmailAuthService emailAuthService) {
-        this.userRepository = userRepository;
-        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
-        this.emailAuthService = emailAuthService;
-    }
+    private final ScheduleService scheduleService;
+    private final PortfolioService portfolioService;
+    private final ProjectService projectService;
 
     // 이메일 체크
     public void emailValidate(EmailCheckRequest emailCheckRequest) throws UserException {
@@ -116,25 +117,66 @@ public class UserService {
         return new CheckResponse(true, "비밀번호가 성공적으로 변경되었습니다.");
     }
 
-    // 회원 삭제 - 테스트 완료
+//    // 회원 삭제 - 테스트 완료
+//    @Transactional
+//    public CheckResponse deleteUser(String email, String password) throws UserException {
+//
+//        // 이메일로 회원 찾기 (ErrorCode 사용)
+//        User user = userRepository.findByEmail(email)
+//                .orElseThrow(() -> new UserException(ErrorCode.USER_NOT_EXIST));
+//
+//        // 비밀번호 확인 (ErrorCode 사용)
+//        if (!bCryptPasswordEncoder.matches(password, user.getPassword())) {
+//            throw new UserException(ErrorCode.USER_WRONG_PASSWORD); // 비밀번호가 맞지 않으면 예외
+//        }
+//
+//        // 회원 삭제
+//        userRepository.delete(user);
+//
+//        // 성공적으로 삭제되었음을 알리는 메시지 반환
+//        return new CheckResponse(true, "회원이 성공적으로 삭제되었습니다."); // 메시지 수정: 관리자 -> 회원
+//    }
+
+
     @Transactional
     public CheckResponse deleteUser(String email, String password) throws UserException {
 
-        // 이메일로 회원 찾기 (ErrorCode 사용)
+        // 1. 이메일로 회원 찾기
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserException(ErrorCode.USER_NOT_EXIST));
 
-        // 비밀번호 확인 (ErrorCode 사용)
+        // 2. 비밀번호 확인
         if (!bCryptPasswordEncoder.matches(password, user.getPassword())) {
-            throw new UserException(ErrorCode.USER_WRONG_PASSWORD); // 비밀번호가 맞지 않으면 예외
+            throw new UserException(ErrorCode.USER_WRONG_PASSWORD);
         }
 
-        // 회원 삭제
+        // 회원 삭제 전에 연관된 모든 데이터를 수동으로 삭제합니다.
+
+        // A. 일정 및 첨부 파일 삭제 (Schedule -> File 연쇄 삭제 포함)
+        scheduleService.deleteAllByUser(user);
+
+        // B. 포트폴리오 및 프로필 이미지 삭제 (Portfolio -> PortfolioItem 연쇄 삭제 포함)
+        portfolioService.deleteByUser(user);
+
+        // C. 프로젝트 및 관련 이미지 삭제
+        projectService.deleteAllByUser(user);
+
+        // 4. 연관된 데이터가 모두 정리된 후, 회원 삭제
         userRepository.delete(user);
 
-        // 성공적으로 삭제되었음을 알리는 메시지 반환
-        return new CheckResponse(true, "회원이 성공적으로 삭제되었습니다."); // 메시지 수정: 관리자 -> 회원
+        // 5. 성공 응답
+        return new CheckResponse(true, "회원이 성공적으로 삭제되었습니다.");
     }
 
+    // 이름 조회 (프론트엔드에서 이름만 받아오기 위해)
+    public String getNameByEmail(String email) throws UserException {
+        // 이메일을 통해 User 엔티티를 찾습니다.
+        User user = userRepository.findByEmail(email)
+                // 사용자가 존재하지 않으면 예외 처리 (인증된 사용자이므로 발생할 확률은 낮지만, 방어적 코드 작성)
+                .orElseThrow(() -> new UserException(ErrorCode.USER_NOT_EXIST));
+
+        // 찾은 사용자의 이름을 반환합니다.
+        return user.getName();
+    }
 
 }

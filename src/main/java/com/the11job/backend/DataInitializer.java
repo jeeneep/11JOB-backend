@@ -25,13 +25,12 @@ public class DataInitializer implements CommandLineRunner {
             jobBatchService.fetchAllJobPostings();
         } catch (Exception e) {
             log.error("채용 정보 초기 로딩 중 치명적인 오류 발생", e);
-            // 초기화 실패 시 애플리케이션을 중단할 수도 있습니다 (선택 사항)
-            // throw new RuntimeException("데이터 초기화 실패", e);
+            throw new RuntimeException("데이터 초기화 실패", e);
         }
 
         log.info("--- [초기화] JobBatchService 호출 완료 ---");
 
-        // H2 DB 커밋 및 정리 시간을 벌기 위한 임시 지연
+        // DB 커밋 및 정리 시간을 벌기 위한 임시 지연
         try {
             Thread.sleep(3000); // 3초 대기
         } catch (InterruptedException ignored) {

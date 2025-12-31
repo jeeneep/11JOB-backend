@@ -39,6 +39,7 @@ public enum ErrorCode {
     // ---------------------- 6. Project 도메인 오류 (P-Codes) ----------------------
     NOT_FOUND_PROJECT(HttpStatus.NOT_FOUND, "P404", "요청하신 프로젝트 정보를 찾을 수 없습니다."),
     PROJECT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "P403", "해당 프로젝트에 접근 권한이 없습니다."),
+    PROJECT_IMAGE_UPLOAD_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "P500", "프로젝트 이미지 업로드 중 오류가 발생했습니다."),
 
     // ---------------------- 7. User 도메인 오류 (U-Codes) ----------------------
     UNAUTHORIZED_USER(HttpStatus.UNAUTHORIZED, "U401", "인증 정보가 유효하지 않습니다."), // 일반적인 인증 실패/미인증

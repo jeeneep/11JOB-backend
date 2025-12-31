@@ -4,13 +4,12 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
 
 @Component
 @Slf4j
@@ -22,6 +21,7 @@ public class JWTUtil {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
+    // getClaims는 서명 검증을 통과한 토큰만 처리하고, 오류 발생 시 명확하게 던지도록
     private Claims getClaims(String token) {
         try {
             return Jwts.parserBuilder()
@@ -29,6 +29,12 @@ public class JWTUtil {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
+        } catch (io.jsonwebtoken.SignatureException e) {
+            log.error("JWT signature validation failed: {}", e.getMessage());
+            throw new IllegalArgumentException("Invalid JWT Signature");
+        } catch (ExpiredJwtException e) {
+            // getEmail/getRole 호출 시 만료된 경우에도 예외를 던지도록 허용
+            throw e;
         } catch (Exception e) {
             log.error("JWT parsing failed: {}", e.getMessage());
             throw new IllegalArgumentException("Invalid JWT token");
@@ -45,9 +51,25 @@ public class JWTUtil {
 
     public Boolean isExpired(String token) {
         try {
-            return getClaims(token).getExpiration().before(new Date());
+            // 만료 체크 시 Jwts.parserBuilder()가 만료 예외를 던지도록 설정하지 않거나
+            // 별도의 파서를 사용하여 예외가 발생하면 true를 반환하는 방식으로 변경합니다.
+
+            // 현재 로직을 유지하면서 만료 예외를 포착하는 방법 (권장):
+            // Jwts.parserBuilder()가 만료된 토큰에 대해 ExpiredJwtException을 던지도록 허용
+            Date expiration = Jwts.parserBuilder()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getExpiration();
+
+            return expiration.before(new Date());
         } catch (ExpiredJwtException e) {
-            throw e; // 그대로 던짐
+            return true; // 만료됨
+        } catch (Exception e) {
+            // 서명 오류나 다른 파싱 오류는 false를 반환하거나 다시 던져 필터가 처리하도록 합니다.
+            log.error("JWT isExpired check failed with other exception: {}", e.getMessage());
+            throw new IllegalArgumentException("Invalid JWT token", e);
         }
     }
 

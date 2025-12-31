@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.web.multipart.MultipartFile;
 
 @Getter
 @Setter
@@ -28,9 +27,6 @@ public class ScheduleRequest {
     private List<ScheduleDetailRequest> details;
 
     // 4. 파일 업로드 및 관리
-
-    // C: 새로 업로드할 파일 리스트
-    private List<MultipartFile> files;
 
     // U/D: (선택적) 기존 파일 중 삭제할 파일 ID 리스트
     private List<Long> filesToDelete;

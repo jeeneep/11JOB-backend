@@ -14,4 +14,5 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     // User 엔티티 객체를 직접 받아 일정을 조회하는 메서드
     List<Schedule> findAllByUserOrderByScheduleDateAsc(User user);
 
+    List<Schedule> findAllByUser(User user);
 }

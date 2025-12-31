@@ -13,7 +13,7 @@ public class ScheduleDetailRequest {
     private Long detailId;
 
     @NotBlank(message = "세부 항목 제목은 필수입니다.")
-    private String title;
+    private String detailTitle;
 
-    private String content;
+    private String detailContent;
 }
