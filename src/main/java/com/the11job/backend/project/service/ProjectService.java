@@ -9,7 +9,6 @@ import com.the11job.backend.project.entity.Project;
 import com.the11job.backend.project.exception.ProjectException;
 import com.the11job.backend.project.repository.ProjectRepository;
 import com.the11job.backend.user.entity.User;
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -25,98 +24,81 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final FileService fileService;
 
-    private static final String S3_DIRECTORY_NAME = "project"; // S3 저장 디렉토리명
+    private static final String S3_DIRECTORY_NAME = "project";
 
-    // 1. 새 프로젝트 1개 등록 (이미지 저장 로직 FileService 위임)
+    // 1. 새 프로젝트 1개 등록 (Full URL 저장)
     @Transactional
     public void addProject(User user, ProjectDto projectDto, MultipartFile image) {
 
         String imageUrl = null;
         if (image != null && !image.isEmpty()) {
             try {
-                // FileService를 사용하여 업로드하고 최종 URL을 받음 (FileService 내부에서 S3Uploader 사용)
-                // uploadAndReplaceSingleFile 메서드는 기존 파일이 없으면 새 파일 URL만 반환하는 로직으로 재사용 가능
+                // FileService의 uploadAndReplaceSingleFile은 Full URL을 반환 (저장 로직 통일)
                 imageUrl = fileService.uploadAndReplaceSingleFile(null, image, S3_DIRECTORY_NAME);
-            } catch (BaseException e) { // FileService에서 던지는 예외를 받음
+            } catch (BaseException e) {
                 throw new ProjectException(ErrorCode.PROJECT_IMAGE_UPLOAD_FAIL, "이미지 업로드에 실패했습니다.", e);
             }
         }
-
         Project project = new Project(
                 projectDto.getTitle(),
                 projectDto.getDescription(),
                 projectDto.getStartDate(),
                 projectDto.getEndDate(),
                 projectDto.getLinkUrl(),
-                imageUrl, // S3 URL 저장
+                imageUrl, // Full URL 저장
                 user
         );
-
         projectRepository.save(project);
     }
 
-    // 2. 프로젝트 1개 수정 (기존 이미지 관리 로직 FileService 위임)
+    // 2. 프로젝트 1개 수정 (Full URL 저장)
     @Transactional
     public void updateProject(User user, Long projectId, ProjectDto projectDto, MultipartFile image) {
 
         Project project = findProjectByIdAndCheckOwnership(user, projectId);
-
         String oldImageUrl = project.getImageUrl();
-        String newImageUrl = oldImageUrl;
 
-        // 이미지 파일 처리 로직 (FileService.uploadAndReplaceSingleFile 재사용)
-        // FileService의 해당 메소드는 기존 파일 삭제, 새 파일 업로드, 최종 URL 반환을 모두 처리합니다.
         try {
-            newImageUrl = fileService.uploadAndReplaceSingleFile(oldImageUrl, image, S3_DIRECTORY_NAME);
+            String newImageUrl = fileService.uploadAndReplaceSingleFile(oldImageUrl, image, S3_DIRECTORY_NAME);
+
+            // 2. 엔티티 업데이트 (Full URL 저장)
+            project.update(
+                    projectDto.getTitle(),
+                    projectDto.getDescription(),
+                    projectDto.getStartDate(),
+                    projectDto.getEndDate(),
+                    projectDto.getLinkUrl(),
+                    newImageUrl // Full URL 저장
+            );
         } catch (BaseException e) {
             throw new ProjectException(ErrorCode.PROJECT_IMAGE_UPLOAD_FAIL, "이미지 업데이트에 실패했습니다.", e);
         }
-
-        // 프론트엔드에서 '이미지 삭제' 요청을 별도로 처리해야 한다면 로직 추가 필요.
-        // 현재는 새 파일이 없으면 oldImageUrl 유지하는 로직이 FileService 내부에 있음.
-
-        // 2. 엔티티 업데이트
-        project.update(
-                projectDto.getTitle(),
-                projectDto.getDescription(),
-                projectDto.getStartDate(),
-                projectDto.getEndDate(),
-                projectDto.getLinkUrl(),
-                newImageUrl
-        );
     }
 
-    // 3. 프로젝트 1개 삭제 (S3 파일 삭제 FileService 위임)
+    // 3. 프로젝트 1개 삭제
     @Transactional
     public void deleteProject(User user, Long projectId) {
-
         Project project = findProjectByIdAndCheckOwnership(user, projectId);
-
         String imageUrl = project.getImageUrl();
 
-        // S3 파일 삭제 로직 FileService 위임
+        // FileService를 사용하여 S3 파일 삭제
         if (StringUtils.hasText(imageUrl)) {
-            // FileService를 사용하여 S3 파일 삭제
             fileService.deleteSingleFile(imageUrl);
         }
-
-        // 2. DB에서 삭제
         projectRepository.delete(project);
     }
 
-    // 4. 내 프로젝트 전체 조회 (URL 변환 적용)
+    // 4. 내 프로젝트 전체 조회 (DTO에 FileService 전달 제거)
     @Transactional(readOnly = true)
     public List<ProjectResponseDto> findMyProjects(User user) {
         return projectRepository.findByUser(user)
                 .stream()
-                // 🌟 DTO 생성 시 FileService를 함께 전달하여 URL 변환 처리
-                .map(project -> new ProjectResponseDto(project, fileService))
+                // 🚨 수정: FileService 전달 로직 제거. DTO가 (Project project)만 받도록 변경
+                .map(ProjectResponseDto::new)
                 .collect(Collectors.toList());
     }
 
-    // ... (findProjectByIdAndCheckOwnership 메서드는 이전과 동일)
     private Project findProjectByIdAndCheckOwnership(User user, Long projectId) {
-        // ... (내용 생략)
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectException(ErrorCode.NOT_FOUND_PROJECT));
         if (!project.getUser().getId().equals(user.getId())) {
@@ -124,5 +106,28 @@ public class ProjectService {
         }
 
         return project;
+    }
+
+    // ----------------------------------------------------
+    // 회원 삭제를 위해 필요한 메서드
+    // ----------------------------------------------------
+    @Transactional
+    public void deleteAllByUser(User user) {
+
+        List<Project> projects = projectRepository.findAllByUser(user);
+
+        if (projects.isEmpty()) {
+            return;
+        }
+
+        // Project 엔티티에 imageUrl이 S3 URL일 경우, S3에서 파일도 삭제
+        projects.forEach(project -> {
+            if (project.getImageUrl() != null) {
+                fileService.deleteSingleFile(project.getImageUrl()); // FileService를 주입받아 사용
+            }
+        });
+
+        // DB에서 Project 엔티티들을 일괄 삭제
+        projectRepository.deleteAll(projects);
     }
 }

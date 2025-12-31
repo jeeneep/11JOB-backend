@@ -1,12 +1,11 @@
 package com.the11job.backend.project.dto;
 
-import com.the11job.backend.file.service.FileService; // 🌟 FileService import 추가
 import com.the11job.backend.project.entity.Project;
 import lombok.Getter;
-import lombok.NoArgsConstructor; // NoArgsConstructor 추가 (선택)
+import lombok.NoArgsConstructor;
 
 @Getter
-@NoArgsConstructor // Lombok NoArgsConstructor 추가 (선택)
+@NoArgsConstructor
 public class ProjectResponseDto {
     private Long id;
     private String title;
@@ -16,14 +15,7 @@ public class ProjectResponseDto {
     private String linkUrl;
     private String imageUrl; // 완전한 URL을 포함
 
-    // ----------------------------------------------------
-    // URL 변환 로직이 적용된 새로운 생성자
-    // ----------------------------------------------------
-    /**
-     * Project 엔티티와 FileService를 받아 DTO를 생성하는 생성자입니다.
-     * DB 경로(Path)를 완전한 URL로 변환합니다.
-     */
-    public ProjectResponseDto(Project project, FileService fileService) {
+    public ProjectResponseDto(Project project) {
         this.id = project.getId();
         this.title = project.getTitle();
         this.description = project.getDescription();
@@ -31,8 +23,6 @@ public class ProjectResponseDto {
         this.endDate = project.getEndDate();
         this.linkUrl = project.getLinkUrl();
 
-        // FileService를 사용하여 DB 경로를 완전한 URL로 변환
-        String path = project.getImageUrl();
-        this.imageUrl = fileService.convertToFullUrl(path);
+        this.imageUrl = project.getImageUrl();
     }
 }

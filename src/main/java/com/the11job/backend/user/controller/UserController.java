@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -98,6 +99,18 @@ public class UserController {
         CheckResponse response = userService.deleteUser(email, request.getPassword());
 
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping("/name")
+    public ResponseEntity<String> getName(@AuthenticationPrincipal UserDetails userDetails) {
+        // AuthenticationPrincipal에서 현재 로그인된 사용자의 이메일(UserDetails.getUsername())을 가져옵니다.
+        String email = userDetails.getUsername();
+
+        // 서비스 계층을 호출하여 이름 정보를 가져옵니다.
+        String name = userService.getNameByEmail(email);
+
+        // 이름 정보를 응답 본문에 담아 반환합니다.
+        return new ResponseEntity<>(name, HttpStatus.OK);
     }
 
 }

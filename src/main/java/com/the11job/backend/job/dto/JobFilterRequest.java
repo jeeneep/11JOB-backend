@@ -15,7 +15,7 @@ public class JobFilterRequest {
     // 근무지역 필터링
     private String workLocation; // 시/구/동 전체 주소 문자열
 
-    // 지원 자격 필터링 (경력, 신입, 인턴 등)
+    // 지원 자격 필터링 (경력, 신입, 무관 등)
     private String careerConditionName;
 
     // 검색어 필터링

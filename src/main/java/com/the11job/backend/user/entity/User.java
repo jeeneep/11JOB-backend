@@ -1,12 +1,17 @@
 package com.the11job.backend.user.entity;
 
 import com.the11job.backend.global.entity.BaseEntity;
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import java.util.Collection;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails; // 1. UserDetails import
-
-import java.util.Collection; // 2. Collection import
+import org.springframework.security.core.userdetails.UserDetails;
 
 @Entity
 @Getter
@@ -14,8 +19,8 @@ import java.util.Collection; // 2. Collection import
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "users") // 이 부분을 추가!
-// 3. 'implements UserDetails' 추가
+@Table(name = "users")
+
 public class User extends BaseEntity implements UserDetails {
 
     @Column(nullable = false, length = 100)
@@ -27,8 +32,8 @@ public class User extends BaseEntity implements UserDetails {
     @Column(nullable = false, length = 100)
     private String name;
 
-    // 4. 아래부터 UserDetails 인터페이스의 메서드들을 구현한 코드 추가
     // ==========================================================
+    // UserDetails 인터페이스의 메서드들을 구현한 코드
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

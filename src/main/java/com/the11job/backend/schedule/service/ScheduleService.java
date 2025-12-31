@@ -3,6 +3,7 @@ package com.the11job.backend.schedule.service;
 import com.the11job.backend.company.entity.Company;
 import com.the11job.backend.company.exception.CompanyException;
 import com.the11job.backend.company.repository.CompanyRepository;
+import com.the11job.backend.file.entity.File;
 import com.the11job.backend.file.service.FileService;
 import com.the11job.backend.global.exception.ErrorCode;
 import com.the11job.backend.schedule.dto.ScheduleDetailRequest;
@@ -14,6 +15,7 @@ import com.the11job.backend.schedule.repository.ScheduleDetailRepository;
 import com.the11job.backend.schedule.repository.ScheduleRepository;
 import com.the11job.backend.user.entity.User;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -154,5 +156,31 @@ public class ScheduleService {
             // 새 항목 저장
             saveScheduleDetails(schedule, detailRequests);
         }
+    }
+
+    // ----------------------------------------------------
+    // 회원 삭제를 위해 필요한 메서드
+    // ----------------------------------------------------
+    @Transactional
+    public void deleteAllByUser(User user) {
+
+        // 1. 해당 유저의 모든 Schedule을 조회
+        List<Schedule> schedules = scheduleRepository.findAllByUser(user);
+
+        if (schedules.isEmpty()) {
+            return;
+        }
+
+        // 2. Schedule에 연결된 S3 파일 URL을 추출하여 S3에서 삭제
+        List<File> allFilesToDelete = schedules.stream()
+                .flatMap(schedule -> schedule.getFiles().stream())
+                .collect(Collectors.toList());
+
+        fileService.deleteS3FilesForSchedule(allFilesToDelete); // FileService에 정의된 S3 삭제 메서드 호출
+
+        // 3. DB에서 Schedule 엔티티들을 일괄 삭제
+        // Schedule 엔티티에 ScheduleDetail과 File에 CascadeType.ALL이 이미 설정되어 있으므로,
+        // Schedule을 삭제하면 하위 Detail 및 File 레코드도 자동으로 삭제
+        scheduleRepository.deleteAll(schedules);
     }
 }

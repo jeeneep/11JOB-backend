@@ -57,7 +57,7 @@ public class JWTFilter extends OncePerRequestFilter {
 
         // Principal 자리에 'User' 객체 자체를 넣습니다.
         Authentication authToken = new UsernamePasswordAuthenticationToken(
-                user, null, user.getAuthorities() // 👈 userDetails 대신 user 객체 사용
+                user, null, user.getAuthorities()
         );
 
         SecurityContextHolder.getContext().setAuthentication(authToken);

@@ -83,13 +83,16 @@ public class JobRepositoryImpl implements JobRepositoryCustom {
                         builder.and(job.workAddress.containsIgnoreCase(location))
                 );
 
-        // 지원 자격 필터링 (경력, 신입, 인턴 등) - '무관'일 경우 필터링하지 않음
+        // 지원 자격 필터링 (경력, 신입, 무관 등)
         Optional.ofNullable(request.getCareerConditionName())
-                .filter(s -> !s.isEmpty() && !s.equalsIgnoreCase("무관")) // '무관' 필터링 제외
-                .ifPresent(career ->
-                        // careerName 필드가 정확히 일치하는지 확인 (예: '신입', '경력')
-                        builder.and(job.careerName.eq(career))
-                );
+                .filter(s -> !s.isEmpty() && !s.equalsIgnoreCase("무관"))
+                .ifPresent(career -> {
+                    // 선택한 career와 '무관'인 공고를 모두 포함
+                    BooleanExpression careerCondition = job.careerName.eq(career);
+                    BooleanExpression irrelevantCondition = job.careerName.eq("무관");
+
+                    builder.and(careerCondition.or(irrelevantCondition));
+                });
 
         // 검색어 필터링
         Optional.ofNullable(request.getSearchKeyword())

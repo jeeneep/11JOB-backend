@@ -1,25 +1,28 @@
 package com.the11job.backend.portfolio.service;
 
-import com.the11job.backend.global.exception.BaseException;
-import com.the11job.backend.global.exception.ErrorCode;
 import com.the11job.backend.file.service.FileService;
 import com.the11job.backend.portfolio.dto.PortfolioRegistrationRequestDto;
 import com.the11job.backend.portfolio.dto.PortfolioResponseDto;
-import com.the11job.backend.portfolio.entity.*;
+import com.the11job.backend.portfolio.entity.ActivityItem;
+import com.the11job.backend.portfolio.entity.CertificateItem;
+import com.the11job.backend.portfolio.entity.EducationItem;
+import com.the11job.backend.portfolio.entity.ExperienceItem;
+import com.the11job.backend.portfolio.entity.LinkItem;
+import com.the11job.backend.portfolio.entity.Portfolio;
 import com.the11job.backend.portfolio.repository.PortfolioRepository;
 import com.the11job.backend.user.entity.User;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class PortfolioService {
 
     private final PortfolioRepository portfolioRepository;
-    private final FileService fileService;
+    private final FileService fileService; // 파일 관리 위임을 위해 유지
 
     private static final String S3_DIRECTORY_NAME = "portfolio"; // S3 디렉토리 설정
 
@@ -33,16 +36,17 @@ public class PortfolioService {
         String oldImagePath = existingPortfolioOpt.map(Portfolio::getProfileImagePath).orElse(null);
         String imagePath = oldImagePath; // 기본적으로 기존 경로 유지
 
-        // 1. 이미지 경로 처리 로직 (FileService 위임 및 try-catch 제거)
-        // FileService가 던지는 BaseException은 RuntimeException이므로 try-catch 생략
+        // 1. 이미지 경로 처리 로직 (FileService 위임 - Full URL 반환)
         imagePath = fileService.uploadAndReplaceSingleFile(oldImagePath, profileImage, S3_DIRECTORY_NAME);
 
         Portfolio portfolio;
         if (existingPortfolioOpt.isPresent()) {
             portfolio = existingPortfolioOpt.get();
             portfolio.clearChildLists();
+            // Full URL 저장
             portfolio.updateInfo(requestDto.getPhone(), requestDto.getAddress(), imagePath);
         } else {
+            // Full URL 저장
             portfolio = new Portfolio(
                     user,
                     requestDto.getPhone(),
@@ -51,7 +55,7 @@ public class PortfolioService {
             );
         }
 
-        // --- DTO -> Entity 변환 및 단일 리스트에 추가 ---
+        // --- DTO -> Entity 변환 및 단일 리스트에 추가 (생략) ---
         if (requestDto.getEducations() != null) {
             requestDto.getEducations().forEach(dto ->
                     portfolio.addItem(new EducationItem(dto.getInstitutionName(), dto.getStartDate(), dto.getEndDate()))
@@ -59,7 +63,8 @@ public class PortfolioService {
         }
         if (requestDto.getExperiences() != null) {
             requestDto.getExperiences().forEach(dto ->
-                    portfolio.addItem(new ExperienceItem(dto.getInstitutionName(), dto.getStartDate(), dto.getEndDate()))
+                    portfolio.addItem(
+                            new ExperienceItem(dto.getInstitutionName(), dto.getStartDate(), dto.getEndDate()))
             );
         }
         if (requestDto.getActivities() != null) {
@@ -81,7 +86,7 @@ public class PortfolioService {
         portfolioRepository.save(portfolio);
     }
 
-    // 포트폴리오 삭제 시 파일 정리 로직 (추가)
+    // 포트폴리오 삭제 시 파일 정리 로직
     @Transactional
     public void deletePortfolio(User user) {
         Portfolio portfolio = portfolioRepository.findByUser(user)
@@ -89,6 +94,7 @@ public class PortfolioService {
 
         String imageUrl = portfolio.getProfileImagePath();
 
+        // FileService를 사용하여 S3 파일 삭제
         if (imageUrl != null && !imageUrl.isEmpty()) {
             fileService.deleteSingleFile(imageUrl);
         }
@@ -108,13 +114,33 @@ public class PortfolioService {
         Portfolio detailedPortfolio = findPortfolioById(portfolio.getId());
 
         // 3. "완전한" 엔티티를 DTO로 변환하여 반환
-        // FileService를 DTO 생성자에 함께 전달하여 URL 변환을 위임
-        return new PortfolioResponseDto(detailedPortfolio, fileService);
+        // 🚨 수정: DTO 생성자에서 FileService 인자 제거
+        return new PortfolioResponseDto(detailedPortfolio);
     }
 
     @Transactional(readOnly = true)
-    private Portfolio findPortfolioById(Long portfolioId) {
+    public Portfolio findPortfolioById(Long portfolioId) {
         return portfolioRepository.findByIdWithDetails(portfolioId)
                 .orElseThrow(() -> new IllegalArgumentException("포트폴리오를 찾을 수 없습니다."));
+    }
+
+    // ----------------------------------------------------
+    // 회원 삭제를 위해 필요한 메서드
+    // ----------------------------------------------------
+    @Transactional
+    public void deleteByUser(User user) {
+
+        // 1. 해당 유저의 Portfolio 조회 (User와 Portfolio는 1:1 관계이며 Portfolio 엔티티에 unique=true가 설정되어 있음)
+        portfolioRepository.findByUser(user)
+                .ifPresent(portfolio -> {
+                    // Portfolio 엔티티에 ProfileImagePath가 S3 URL일 경우, S3에서 파일도 삭제
+                    if (portfolio.getProfileImagePath() != null) {
+                        fileService.deleteSingleFile(portfolio.getProfileImagePath()); // FileService를 주입받아 사용
+                    }
+
+                    // Portfolio 엔티티에 PortfolioItem에 CascadeType.ALL이 설정되어 있으므로,
+                    // Portfolio를 삭제하면 하위 PortfolioItem도 자동으로 삭제
+                    portfolioRepository.delete(portfolio);
+                });
     }
 }

@@ -1,15 +1,16 @@
 package com.the11job.backend.portfolio.dto;
 
-import com.the11job.backend.file.service.FileService; // 🌟 FileService import
+// FileService import 제거됨
+
 import com.the11job.backend.portfolio.entity.ActivityItem;
 import com.the11job.backend.portfolio.entity.CertificateItem;
 import com.the11job.backend.portfolio.entity.EducationItem;
 import com.the11job.backend.portfolio.entity.ExperienceItem;
 import com.the11job.backend.portfolio.entity.LinkItem;
 import com.the11job.backend.portfolio.entity.Portfolio;
-import lombok.Getter;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.Getter;
 
 @Getter
 public class PortfolioResponseDto {
@@ -18,7 +19,7 @@ public class PortfolioResponseDto {
     private Long id;
     private String phone;
     private String address;
-    private String profileImageUrl;
+    private String profileImageUrl; // 🌟 필드명을 URL임을 명확히 변경
 
     // 2. User 정보 (민감 정보 제외)
     private UserDto user;
@@ -29,15 +30,14 @@ public class PortfolioResponseDto {
     private List<LinkItemDto> links;
     private List<CertificateItemDto> certificates;
 
-    // 4. 엔티티 + FileService -> DTO 변환 생성자 (수정)
-    public PortfolioResponseDto(Portfolio portfolio, FileService fileService) { // FileService 인자 추가
+    // 4. 엔티티 -> DTO 변환 생성자 (FileService 인자 제거)
+    public PortfolioResponseDto(Portfolio portfolio) {
         this.id = portfolio.getId();
         this.phone = portfolio.getPhone();
         this.address = portfolio.getAddress();
 
-        // FileService를 사용하여 URL 변환
-        String path = portfolio.getProfileImagePath();
-        this.profileImageUrl = fileService.convertToFullUrl(path);
+        // 🚨 수정: DB에 저장된 Full URL을 그대로 사용
+        this.profileImageUrl = portfolio.getProfileImagePath();
 
         if (portfolio.getUser() != null) {
             this.user = new UserDto(portfolio.getUser());
@@ -69,8 +69,6 @@ public class PortfolioResponseDto {
                 .map(item -> new CertificateItemDto((CertificateItem) item))
                 .collect(Collectors.toList());
     }
-
-    // --- 내부 DTO 클래스들 ---
 
     @Getter
     private static class UserDto {

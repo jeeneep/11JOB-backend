@@ -55,7 +55,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // 실제 운영 환경에서는 허용할 출처를 명확히 지정해야 합니다.
-        // configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://your-frontend.com"));
+        configuration.setAllowedOrigins(List.of(
+                "https://11job.github.io", // **문제 발생 도메인 (필수)**
+                "http://localhost:3000"     // 로컬 개발 환경 (필요 시 추가)
+        ));
         configuration.setAllowedOriginPatterns(List.of("*")); // 개발 편의성을 위해 모든 출처 허용
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
